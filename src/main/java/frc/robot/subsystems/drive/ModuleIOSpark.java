@@ -7,8 +7,42 @@
 
 package frc.robot.subsystems.drive;
 
-import static frc.robot.subsystems.drive.DriveConstants.*;
-import static frc.robot.util.SparkUtil.*;
+import static frc.robot.subsystems.drive.DriveConstants.backLeftDriveCanId;
+import static frc.robot.subsystems.drive.DriveConstants.backLeftTurnCanId;
+import static frc.robot.subsystems.drive.DriveConstants.backLeftZeroRotation;
+import static frc.robot.subsystems.drive.DriveConstants.backRightDriveCanId;
+import static frc.robot.subsystems.drive.DriveConstants.backRightTurnCanId;
+import static frc.robot.subsystems.drive.DriveConstants.backRightZeroRotation;
+import static frc.robot.subsystems.drive.DriveConstants.driveEncoderPositionFactor;
+import static frc.robot.subsystems.drive.DriveConstants.driveEncoderVelocityFactor;
+import static frc.robot.subsystems.drive.DriveConstants.driveKd;
+import static frc.robot.subsystems.drive.DriveConstants.driveKp;
+import static frc.robot.subsystems.drive.DriveConstants.driveKs;
+import static frc.robot.subsystems.drive.DriveConstants.driveKv;
+import static frc.robot.subsystems.drive.DriveConstants.driveMotorCurrentLimit;
+import static frc.robot.subsystems.drive.DriveConstants.frontLeftAnalogThing;
+import static frc.robot.subsystems.drive.DriveConstants.frontLeftDriveCanId;
+import static frc.robot.subsystems.drive.DriveConstants.frontLeftTurnCanId;
+import static frc.robot.subsystems.drive.DriveConstants.frontLeftZeroRotation;
+import static frc.robot.subsystems.drive.DriveConstants.frontRightAnalogThing;
+import static frc.robot.subsystems.drive.DriveConstants.frontRightDriveCanId;
+import static frc.robot.subsystems.drive.DriveConstants.frontRightTurnCanId;
+import static frc.robot.subsystems.drive.DriveConstants.frontRightZeroRotation;
+import static frc.robot.subsystems.drive.DriveConstants.odometryFrequency;
+import static frc.robot.subsystems.drive.DriveConstants.rearLeftAnalogThing;
+import static frc.robot.subsystems.drive.DriveConstants.rearRightAnalogThing;
+import static frc.robot.subsystems.drive.DriveConstants.turnEncoderInverted;
+import static frc.robot.subsystems.drive.DriveConstants.turnEncoderPositionFactor;
+import static frc.robot.subsystems.drive.DriveConstants.turnEncoderVelocityFactor;
+import static frc.robot.subsystems.drive.DriveConstants.turnInverted;
+import static frc.robot.subsystems.drive.DriveConstants.turnKd;
+import static frc.robot.subsystems.drive.DriveConstants.turnKp;
+import static frc.robot.subsystems.drive.DriveConstants.turnMotorCurrentLimit;
+import static frc.robot.subsystems.drive.DriveConstants.turnPIDMaxInput;
+import static frc.robot.subsystems.drive.DriveConstants.turnPIDMinInput;
+import static frc.robot.util.SparkUtil.ifOk;
+import static frc.robot.util.SparkUtil.sparkStickyFault;
+import static frc.robot.util.SparkUtil.tryUntilOk;
 
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
@@ -19,7 +53,6 @@ import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
 import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkClosedLoopController.ArbFFUnits;
-import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
@@ -55,8 +88,10 @@ public class ModuleIOSpark implements ModuleIO {
   private final Queue<Double> turnPositionQueue;
 
   // Connection debouncers
-  private final Debouncer driveConnectedDebounce = new Debouncer(0.5);
-  private final Debouncer turnConnectedDebounce = new Debouncer(0.5);
+  private final Debouncer driveConnectedDebounce =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
+  private final Debouncer turnConnectedDebounce =
+      new Debouncer(0.5, Debouncer.DebounceType.kFalling);
 
   public ModuleIOSpark(int module) {
     zeroRotation =
@@ -65,10 +100,10 @@ public class ModuleIOSpark implements ModuleIO {
           case 1 -> frontRightZeroRotation;
           case 2 -> backLeftZeroRotation;
           case 3 -> backRightZeroRotation;
-          default -> new Rotation2d();
+          default -> Rotation2d.kZero;
         };
     driveSpark =
-        new SparkFlex(
+        new SparkMax(
             switch (module) {
               case 0 -> frontLeftDriveCanId;
               case 1 -> frontRightDriveCanId;
@@ -88,7 +123,16 @@ public class ModuleIOSpark implements ModuleIO {
             },
             MotorType.kBrushless);
     driveEncoder = driveSpark.getEncoder();
-    turnEncoder = turnSpark.getAbsoluteEncoder(); //TODO: need to get these differently for our code: thrify encoder also turn spark flex to what we use
+    turnEncoder =
+        new ThriftyEncoder(
+            switch (module) {
+              case 0 -> frontLeftAnalogThing;
+              case 1 -> frontRightAnalogThing;
+              case 2 -> rearLeftAnalogThing;
+              case 3 -> rearRightAnalogThing;
+              default -> 0;
+            },
+            turnSpark.getEncoder());
     driveController = driveSpark.getClosedLoopController();
     turnController = turnSpark.getClosedLoopController();
 
