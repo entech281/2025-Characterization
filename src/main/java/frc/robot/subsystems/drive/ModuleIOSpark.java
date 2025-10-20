@@ -31,7 +31,6 @@ import static frc.robot.subsystems.drive.DriveConstants.frontRightZeroRotation;
 import static frc.robot.subsystems.drive.DriveConstants.odometryFrequency;
 import static frc.robot.subsystems.drive.DriveConstants.rearLeftAnalogThing;
 import static frc.robot.subsystems.drive.DriveConstants.rearRightAnalogThing;
-import static frc.robot.subsystems.drive.DriveConstants.turnEncoderInverted;
 import static frc.robot.subsystems.drive.DriveConstants.turnEncoderPositionFactor;
 import static frc.robot.subsystems.drive.DriveConstants.turnEncoderVelocityFactor;
 import static frc.robot.subsystems.drive.DriveConstants.turnInverted;
@@ -47,7 +46,7 @@ import static frc.robot.util.SparkUtil.tryUntilOk;
 import com.revrobotics.AbsoluteEncoder;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.ClosedLoopSlot;
-import com.revrobotics.spark.SparkBase;
+// import com.revrobotics.spark.SparkBase;
 import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.SparkBase.PersistMode;
 import com.revrobotics.spark.SparkBase.ResetMode;
@@ -57,7 +56,6 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.ClosedLoopConfig.FeedbackSensor;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
 import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.Debouncer;
@@ -73,8 +71,8 @@ public class ModuleIOSpark implements ModuleIO {
   private final Rotation2d zeroRotation;
 
   // Hardware objects
-  private final SparkBase driveSpark;
-  private final SparkBase turnSpark;
+  private final SparkMax driveSpark;
+  private final SparkMax turnSpark;
   private final RelativeEncoder driveEncoder;
   private final AbsoluteEncoder turnEncoder;
 
@@ -137,7 +135,7 @@ public class ModuleIOSpark implements ModuleIO {
     turnController = turnSpark.getClosedLoopController();
 
     // Configure drive motor
-    var driveConfig = new SparkFlexConfig();
+    var driveConfig = new SparkMaxConfig();
     driveConfig
         .idleMode(IdleMode.kBrake)
         .smartCurrentLimit(driveMotorCurrentLimit)
@@ -179,14 +177,12 @@ public class ModuleIOSpark implements ModuleIO {
         .smartCurrentLimit(turnMotorCurrentLimit)
         .voltageCompensation(12.0);
     turnConfig
-        .absoluteEncoder
-        .inverted(turnEncoderInverted)
+        .encoder
         .positionConversionFactor(turnEncoderPositionFactor)
-        .velocityConversionFactor(turnEncoderVelocityFactor)
-        .averageDepth(2);
+        .velocityConversionFactor(turnEncoderVelocityFactor);
     turnConfig
         .closedLoop
-        .feedbackSensor(FeedbackSensor.kAbsoluteEncoder)
+        .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
         .positionWrappingEnabled(true)
         .positionWrappingInputRange(turnPIDMinInput, turnPIDMaxInput)
         .pidf(turnKp, 0.0, turnKd, 0.0);
