@@ -112,7 +112,7 @@ public class RobotContainer {
     drive.setDefaultCommand(
         DriveCommands.joystickDrive(
             drive,
-            () -> -controller.getLeftY(),
+            () -> -controller.getLeftY(), // some unit
             () -> -controller.getLeftX(),
             () -> -controller.getRightX()));
 

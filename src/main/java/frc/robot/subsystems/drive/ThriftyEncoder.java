@@ -26,7 +26,7 @@ public class ThriftyEncoder implements AbsoluteEncoder {
     this.analogInput = new AnalogInput(port);
     this.inverted = false;
     this.positionOffset = 0.0;
-    this.motorEncoder.setPosition(getPosition() + Math.PI);
+    this.motorEncoder.setPosition(getPosition() + Math.PI); //maybe should be minus
   }
 
   /**
@@ -80,8 +80,11 @@ public class ThriftyEncoder implements AbsoluteEncoder {
     positionOffset = getPosition();
   }
 
+  /**
+   * @return: radians/sec
+   */
   @Override
   public double getVelocity() {
-    return motorEncoder.getVelocity();
+    return motorEncoder.getVelocity() * ((2 * Math.PI) / 60);
   }
 }
