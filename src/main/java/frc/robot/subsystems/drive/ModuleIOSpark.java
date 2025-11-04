@@ -121,16 +121,6 @@ public class ModuleIOSpark implements ModuleIO {
             },
             MotorType.kBrushless);
     driveEncoder = driveSpark.getEncoder();
-    turnEncoder =
-        new ThriftyEncoder(
-            switch (module) {
-              case 0 -> frontLeftAnalogThing;
-              case 1 -> frontRightAnalogThing;
-              case 2 -> rearLeftAnalogThing;
-              case 3 -> rearRightAnalogThing;
-              default -> 0;
-            },
-            turnSpark.getEncoder());
     driveController = driveSpark.getClosedLoopController();
     turnController = turnSpark.getClosedLoopController();
 
@@ -149,9 +139,7 @@ public class ModuleIOSpark implements ModuleIO {
     driveConfig
         .closedLoop
         .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
-        .pidf(
-            driveKp, 0.0,
-            driveKd, 0.0);
+        .pidf(driveKp, 0.0, driveKd, 0.001, ClosedLoopSlot.kSlot0);
     driveConfig
         .signals
         .primaryEncoderPositionAlwaysOn(true)
@@ -188,20 +176,30 @@ public class ModuleIOSpark implements ModuleIO {
         .pidf(turnKp, 0.0, turnKd, 0.0);
     turnConfig
         .signals
-        .absoluteEncoderPositionAlwaysOn(true)
-        .absoluteEncoderPositionPeriodMs((int) (1000.0 / odometryFrequency))
-        .absoluteEncoderVelocityAlwaysOn(true)
-        .absoluteEncoderVelocityPeriodMs(20)
+        .primaryEncoderPositionAlwaysOn(true)
+        .primaryEncoderPositionPeriodMs((int) (1000.0 / odometryFrequency))
+        .primaryEncoderVelocityAlwaysOn(true)
+        .primaryEncoderVelocityPeriodMs(20)
         .appliedOutputPeriodMs(20)
         .busVoltagePeriodMs(20)
         .outputCurrentPeriodMs(20);
+
     tryUntilOk(
         turnSpark,
         5,
         () ->
             turnSpark.configure(
                 turnConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters));
-
+    turnEncoder =
+        new ThriftyEncoder(
+            switch (module) {
+              case 0 -> frontLeftAnalogThing;
+              case 1 -> frontRightAnalogThing;
+              case 2 -> rearLeftAnalogThing;
+              case 3 -> rearRightAnalogThing;
+              default -> 0;
+            },
+            turnSpark.getEncoder());
     // Create odometry queues
     timestampQueue = SparkOdometryThread.getInstance().makeTimestampQueue();
     drivePositionQueue =
